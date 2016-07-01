@@ -105,8 +105,19 @@ protected:
    * \author Thibaut Munzer
    */
   void expectationMaximization(const Eigen::MatrixXd& data, std::vector<Eigen::VectorXd>& means, std::vector<double>& priors,
-    std::vector<Eigen::MatrixXd>& covars, int n_max_iter=50);
+    std::vector<Eigen::MatrixXd>& covars, Eigen::MatrixXd& assign, int n_max_iter=50);
   
+  /** EM algorithm Incremental.
+   * \param[in] data A (n_exemples x (n_in_dim + n_out_dim)) data matrix
+   * \param[in,out] means A list (std::vector) of n_gaussian means (vector of size (n_in_dim + n_out_dim))
+   * \param[in,out] priors A list (std::vector) of n_gaussian priors
+   * \param[in,out] covars A list (std::vector) of n_gaussian covariance matrices ((n_in_dim + n_out_dim) x (n_in_dim + n_out_dim))
+   * \param[in] n_max_iter The maximum number of iterations
+   * \author Gennaro Raiola
+   */
+  void expectationMaximizationIncremental(const Eigen::MatrixXd& data, std::vector<Eigen::VectorXd>& means, std::vector<double>& priors,
+    std::vector<Eigen::MatrixXd>& covars, Eigen::MatrixXd& assign, int n_max_iter=50);
+
   /** The probability density function (PDF) of the multi-variate normal distribution
    * \param[in] mu The mean of the normal distribution
    * \param[in] covar The covariance matrix of the normal distribution 
@@ -138,6 +149,8 @@ public:
    * Therefore, this function cannot be const.
    */
   void predictDot(const Eigen::MatrixXd& inputs, Eigen::MatrixXd& outputs, Eigen::MatrixXd& outputs_dot, Eigen::MatrixXd& variances);
+
+  void trainIncremental(const Eigen::MatrixXd& inputs, const Eigen::MatrixXd& targets);
 
 private:
   /**
@@ -172,6 +185,9 @@ private:
   Eigen::MatrixXd empty_prealloc_;
   double probabilities_prealloc_sum_;
   double probabilities_dot_prealloc_sum_;
+
+  /** Used for incremental learning. */
+  Eigen::MatrixXd assign_;
 };
 
 }

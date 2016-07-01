@@ -2,3 +2,7 @@ add_executable(demoTrainFunctionApproximators demoTrainFunctionApproximators.cpp
 target_link_libraries(demoTrainFunctionApproximators functionapproximators ${LWPR_LIBRARIES} ${Boost_LIBRARIES})
 install(TARGETS demoTrainFunctionApproximators DESTINATION bin)
 
+add_executable(demoTrainIncrementalGMR demoTrainIncrementalGMR.cpp)
+target_link_libraries(demoTrainIncrementalGMR functionapproximators ${Boost_LIBRARIES})
+install(TARGETS demoTrainIncrementalGMR DESTINATION bin)
+
