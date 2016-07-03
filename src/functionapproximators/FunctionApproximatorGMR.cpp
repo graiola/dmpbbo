@@ -887,7 +887,7 @@ void FunctionApproximatorGMR::expectationMaximizationIncremental(const MatrixXd&
     // E step
     for (int iData = 0; iData < data.rows(); iData++)
       for (size_t i_gau = 0; i_gau < centers.size(); i_gau++)
-        assign(i_gau, iData) = priors_prev[i_gau] * FunctionApproximatorGMR::normalPDF(centers[i_gau], covars[i_gau],data.row(iData).transpose());
+        assign(i_gau, iData) = priors_prev[i_gau] * FunctionApproximatorGMR::normalPDF(centers_prev[i_gau], covars_prev[i_gau],data.row(iData).transpose());
 
     oldLoglik = loglik;
     loglik = 0;
@@ -915,23 +915,22 @@ void FunctionApproximatorGMR::expectationMaximizationIncremental(const MatrixXd&
     {
       for (size_t i_gau = 0; i_gau < centers.size(); i_gau++)
       {
-        centers[i_gau] += E_prev[i_gau] * centers_prev[i_gau]  + assign(i_gau, iData) * data.row(iData).transpose();
+        centers[i_gau] +=  assign(i_gau, iData) * data.row(iData).transpose();
       }
     }
 
     for (size_t i_gau = 0; i_gau < centers.size(); i_gau++)
     {
-      centers[i_gau] /= (assign.row(i_gau).sum() +  E[i_gau]);
+      centers[i_gau] = (E_prev[i_gau] * centers_prev[i_gau] + centers[i_gau])/(E[i_gau] + E_prev[i_gau]);
       priors[i_gau] = (E[i_gau] + E_prev[i_gau])/(assign.cols() + assign_prev.cols());
     }
 
     for (int iData = 0; iData < data.rows(); iData++)
       for (size_t i_gau = 0; i_gau < centers.size(); i_gau++)
-        covars[i_gau] += assign(i_gau, iData) * (data.row(iData).transpose() - centers[i_gau]) * (data.row(iData).transpose() - centers[i_gau]).transpose() +
-                E_prev[i_gau] * (covars_prev[i_gau] + (centers_prev[i_gau] - centers[i_gau]) * (centers_prev[i_gau] - centers[i_gau]).transpose());
+        covars[i_gau] += assign(i_gau, iData) * (data.row(iData).transpose() - centers[i_gau]) * (data.row(iData).transpose() - centers[i_gau]).transpose();
 
     for (size_t i_gau = 0; i_gau < centers.size(); i_gau++)
-      covars[i_gau] /= (E[i_gau] + E_prev[i_gau]);
+      covars[i_gau] = (covars[i_gau] + E_prev[i_gau] * (covars_prev[i_gau] + (centers_prev[i_gau] - centers[i_gau]) * (centers_prev[i_gau] - centers[i_gau]).transpose()))/(E[i_gau] + E_prev[i_gau]);
 
     // Be sure that covar is invertible
     for (size_t i_gau = 0; i_gau < centers.size(); i_gau++)

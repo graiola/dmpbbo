@@ -85,7 +85,7 @@ int main(int n_args, char** args)
 
   // Add some noise
   for (int i_target = 1; i_target < n_targets; i_target++)
-    targets[i_target] = targets[0] + 0.1*VectorXd::Random(targets[0].rows(),targets[0].cols());
+    targets[i_target] = targets[0] + 0.001*VectorXd::Random(targets[0].rows(),targets[0].cols());
 
   MatrixXd inputs_all, targets_all;
 
@@ -115,11 +115,11 @@ int main(int n_args, char** args)
   delete fa;
 
   fa = new FunctionApproximatorGMR(meta_parameters_gmr);
-  for (int i_target = 0; i_target< n_targets; i_target++)
+  for (int i_target = 4; i_target> 0; i_target--)
   {
       cout << "_____________________________________" << endl << fa->getName() << endl;
-      cout << "    Training number: "<< i_target+1 << "  "<< endl;
-      if (!directory.empty()) directory_fa =  directory+"/"+fa->getName();
+      cout << "    Training number: "<< i_target << "  "<< endl;
+      //if (!directory.empty()) directory_fa =  directory+"/"+fa->getName();
       fa->trainIncremental(inputs,targets[i_target]);
       cout << "    Predicting" << endl;
       fa->predict(inputs,outputs);
