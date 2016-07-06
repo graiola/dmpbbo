@@ -117,38 +117,43 @@ void FunctionApproximatorGMR::train(const MatrixXd& inputs, const MatrixXd& targ
   std::vector<MatrixXd> covars(n_gaussians);
   std::vector<double> priors(n_gaussians);
   std::vector<double> E(n_gaussians);
-  int n_observations;
+  int n_observations = 0;
   for (int i = 0; i < n_gaussians; i++)
   {
     means[i] = VectorXd(n_dims_gmm);
     priors[i] = 0.0;
+    E[i] = 0.0;
     covars[i] = MatrixXd(n_dims_gmm, n_dims_gmm);
   }
-
-  const ModelParametersGMR* model_parameters_GMR = static_cast<const ModelParametersGMR*>(getModelParameters());
-
-  // Extract the model parameters
-  for (int i = 0; i < n_gaussians; i++)
-  {
-    means[i].segment(0, n_dims_in)    = model_parameters_GMR->means_x_[i];
-    means[i].segment(n_dims_in, n_dims_out)    = model_parameters_GMR->means_y_[i];
-
-    covars[i].block(0, 0, n_dims_in, n_dims_in)   = model_parameters_GMR->covars_x_[i];
-    covars[i].block(n_dims_in, n_dims_in, n_dims_out, n_dims_out)   = model_parameters_GMR->covars_y_[i];
-    covars[i].block(n_dims_in, 0, n_dims_out, n_dims_in) = model_parameters_GMR->covars_y_x_[i];
-
-    priors[i] = model_parameters_GMR->priors_[i];
-
-    E[i] = model_parameters_GMR->E_[i];
-  }
-  n_observations = model_parameters_GMR->n_observations_;
 
   // Put the input/output data in one big matrix
   MatrixXd data = MatrixXd(inputs.rows(), n_dims_gmm);
   data << inputs, targets;
 
-  if(retrain)
+  if(isTrained())
+  {
+      cerr << "WARNING: FunctionApproximatorGMR is already trained, retraining..." << endl;
+
+      const ModelParametersGMR* model_parameters_GMR = static_cast<const ModelParametersGMR*>(getModelParameters());
+
+      // Extract the model parameters
+      for (int i = 0; i < n_gaussians; i++)
+      {
+        means[i].segment(0, n_dims_in)    = model_parameters_GMR->means_x_[i];
+        means[i].segment(n_dims_in, n_dims_out)    = model_parameters_GMR->means_y_[i];
+
+        covars[i].block(0, 0, n_dims_in, n_dims_in)   = model_parameters_GMR->covars_x_[i];
+        covars[i].block(n_dims_in, n_dims_in, n_dims_out, n_dims_out)   = model_parameters_GMR->covars_y_[i];
+        covars[i].block(n_dims_in, 0, n_dims_out, n_dims_in) = model_parameters_GMR->covars_y_x_[i];
+
+        priors[i] = model_parameters_GMR->priors_[i];
+
+        E[i] = model_parameters_GMR->E_[i];
+      }
+      n_observations = model_parameters_GMR->n_observations_;
+
       expectationMaximizationIncremental(data, means, priors, covars, E, n_observations); // Expectation-Maximization Incremental
+  }
   else
   {
       // Initialization
