@@ -120,7 +120,7 @@ int main(int n_args, char** args)
       cout << "_____________________________________" << endl << fa->getName() << endl;
       cout << "    Training number: "<< i_target << "  "<< endl;
       //if (!directory.empty()) directory_fa =  directory+"/"+fa->getName();
-      fa->trainIncremental(inputs,targets[i_target]);
+      fa->train(inputs,targets[i_target]);
       cout << "    Predicting" << endl;
       fa->predict(inputs,outputs);
       meanAbsoluteErrorPerOutputDimension(targets[i_target],outputs);
