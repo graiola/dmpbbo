@@ -40,9 +40,9 @@ class ModelParametersGMR : public ModelParameters
   friend class FunctionApproximatorGMR;
   
 public:
-  
+
   ModelParametersGMR(std::vector<double> priors,
-    std::vector<Eigen::VectorXd> means, 
+    std::vector<Eigen::VectorXd> means,
     std::vector<Eigen::MatrixXd> covars, int n_output_dims=1);
 
   /** Constructor for the model parameters of the GMR function approximator.
@@ -50,6 +50,19 @@ public:
   ModelParametersGMR(std::vector<double> priors, std::vector<Eigen::VectorXd> mu_xs,
     std::vector<Eigen::VectorXd> mu_ys, std::vector<Eigen::MatrixXd> sigma_xs,
     std::vector<Eigen::MatrixXd> sigma_ys, std::vector<Eigen::MatrixXd> sigma_x_ys);
+
+  /** Constructors with incremental parameters. */
+
+  ModelParametersGMR(std::vector<double> priors,
+    std::vector<Eigen::VectorXd> means,
+    std::vector<Eigen::MatrixXd> covars, std::vector<double> E, int n_observations, int n_output_dims=1);
+
+  /** Constructor for the model parameters of the GMR function approximator.
+   */
+  ModelParametersGMR(std::vector<double> priors, std::vector<Eigen::VectorXd> mu_xs,
+    std::vector<Eigen::VectorXd> mu_ys, std::vector<Eigen::MatrixXd> sigma_xs,
+    std::vector<Eigen::MatrixXd> sigma_ys, std::vector<Eigen::MatrixXd> sigma_x_ys,
+    std::vector<double> E, int n_observations);
 
   inline unsigned int getNumberOfGaussians(void) const 
   {
@@ -138,6 +151,7 @@ protected:
   void setParameterVectorAll(const Eigen::VectorXd& values);
   
 private:
+
   std::vector<double> priors_;
 
   std::vector<Eigen::VectorXd> means_x_;
@@ -147,6 +161,10 @@ private:
   std::vector<Eigen::MatrixXd> covars_y_;
   std::vector<Eigen::MatrixXd> covars_y_x_;
 
+  /** Cumulated posterior probability. (Used by the incremental learning) */
+  std::vector<double> E_;
+  /** Number of observations used to create the model. (Used by the incremental learning) */
+  int n_observations_;
 
   void updateCachedMembers(void);
   
