@@ -122,6 +122,7 @@ public:
  0. meta_data  (n_gaussians and n_output_dims)
  __________________________
  1. prior1     (only column 0 contains the prior, the rest is zero)
+ 2. E1
  2. mean1      (size: 3)
  3. covar1     (row1 of covar matrix)
  4. covar1     (row2 of covar matrix)
