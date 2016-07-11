@@ -207,9 +207,6 @@ void FunctionApproximatorGMR::trainIncremental(const MatrixXd& inputs, const Mat
     return;
   }
 
-  assert(inputs.rows() == targets.rows()); // Must have same number of examples
-  assert(inputs.cols()==getExpectedInputDim());
-
   const MetaParametersGMR* meta_parameters_GMR =
     static_cast<const MetaParametersGMR*>(getMetaParameters());
 
@@ -247,6 +244,7 @@ void FunctionApproximatorGMR::trainIncremental(const MatrixXd& inputs, const Mat
   // Put the input/output data in one big matrix
   MatrixXd data = MatrixXd(inputs.rows(), n_dims_gmm);
   data << inputs, targets;
+
 
   // Expectation-Maximization Incremental
   expectationMaximizationIncremental(data, means, priors, covars, assign_);
@@ -312,10 +310,7 @@ double FunctionApproximatorGMR::normalPDF(const VectorXd& mu, const MatrixXd& co
   // For invertible matrices (which covar apparently was), det(A^-1) = 1/det(A)
   // Hence the 1.0/covar_inverse.determinant() below
   //  ( (2\pi)^N*|\Sigma| )^(-1/2)
-  //output *= pow(pow(2*M_PI,mu.size())/(covar_inverse.determinant()),-0.5);
-
-  output /= sqrt( pow(2*M_PI,mu.size()) * abs(covar.determinant())) + 1e-5f;
-
+  output *= pow(pow(2*M_PI,mu.size())/(covar_inverse.determinant()),-0.5);
   return output;
 }
 
@@ -803,11 +798,11 @@ void FunctionApproximatorGMR::expectationMaximization(const MatrixXd& data, std:
       loglik += log(assign.col(iData).sum());
     loglik /= data.rows();
 
-    if (fabs(loglik / oldLoglik - 1) < 1e-8f)
-      break;
-
     for (int iData = 0; iData < data.rows(); iData++)
       assign.col(iData) /= assign.col(iData).sum();
+
+    if (fabs(loglik / oldLoglik - 1) < 1e-8f)
+      break;
 
     // M step
     for (size_t i_gau = 0; i_gau < centers.size(); i_gau++)
@@ -878,7 +873,6 @@ void FunctionApproximatorGMR::expectationMaximizationIncremental(const MatrixXd&
     std::vector<MatrixXd>& covars, MatrixXd& assign, int n_max_iter)
 {
 
-
   std::vector<VectorXd> centers_prev = centers;
   std::vector<double> priors_prev = priors;
   std::vector<MatrixXd> covars_prev = covars;
@@ -892,12 +886,6 @@ void FunctionApproximatorGMR::expectationMaximizationIncremental(const MatrixXd&
 
   std::vector<double> E(centers.size(),0.0);
   std::vector<double> E_prev(centers.size(),0.0);
-
-  for (size_t i_gau = 0; i_gau < centers.size(); i_gau++)
-  {
-    E_prev[i_gau] = assign_prev.row(i_gau).sum();
-  }
-
 
   for (int iIter = 0; iIter < n_max_iter; iIter++)
   {
@@ -916,11 +904,11 @@ void FunctionApproximatorGMR::expectationMaximizationIncremental(const MatrixXd&
       loglik += log(assign.col(iData).sum());
     loglik /= data.rows();
 
-    if (fabs(loglik / oldLoglik - 1) < 1e-8f)
-      break;
-
     for (int iData = 0; iData < data.rows(); iData++)
       assign.col(iData) /= assign.col(iData).sum();
+
+    if (fabs(loglik / oldLoglik - 1) < 1e-8f)
+      break;
 
     // M step
     for (size_t i_gau = 0; i_gau < centers.size(); i_gau++)
