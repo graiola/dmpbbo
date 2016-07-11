@@ -321,10 +321,10 @@ void ModelParametersGMR::toMatrix(Eigen::MatrixXd& gmm_as_matrix) const
   int n_dims_out = means_y_[0].size();
   int n_dims_gmm = n_dims_in + n_dims_out;
   
-  int n_rows = 3; // First row contains n_gaussians, n_output_dims, Second row contains E, Third raw contains n_observations
+  int n_rows = 2; // First row contains n_gaussians, n_output_dims, second row contains n_observations
   for (int i_gau = 0; i_gau < n_gaussians; i_gau++)
   {
-    n_rows += 1; // Add one row for the prior (only first entry used)
+    n_rows += 1; // Add one row for the prior and E
     n_rows += 1; // Add one row for the mean
     n_rows += n_dims_gmm; // For the covariance matrix 
   }
@@ -333,7 +333,7 @@ void ModelParametersGMR::toMatrix(Eigen::MatrixXd& gmm_as_matrix) const
   
   gmm_as_matrix(0,0) = n_gaussians;
   gmm_as_matrix(0,1) = n_dims_out;
-  gmm_as_matrix(2,0) = n_observations_;
+  gmm_as_matrix(1,0) = n_observations_;
   
   VectorXd mean = VectorXd(n_dims_gmm);
   MatrixXd covar = MatrixXd(n_dims_gmm,n_dims_gmm);
@@ -348,8 +348,8 @@ void ModelParametersGMR::toMatrix(Eigen::MatrixXd& gmm_as_matrix) const
     covar.block(n_dims_in, 0, n_dims_out, n_dims_in) = covars_y_x_[i_gau];
     covar.block(0, n_dims_in, n_dims_in, n_dims_out) = covars_y_x_[i_gau].transpose();
     
-    gmm_as_matrix(1,0) = E_[i_gau];
-    gmm_as_matrix(cur_row  ,0) = priors_[i_gau];
+    gmm_as_matrix(cur_row,0) = priors_[i_gau];
+    gmm_as_matrix(cur_row,1) = E_[i_gau];
     gmm_as_matrix.row(cur_row+1) = mean;
     gmm_as_matrix.block(cur_row+2,0,n_dims_gmm,n_dims_gmm) = covar;
     
@@ -366,31 +366,29 @@ ModelParametersGMR* ModelParametersGMR::fromMatrix(const MatrixXd& gmm_matrix)
   
   int n_gaussians = gmm_matrix(0,0);
   int n_dims_out = gmm_matrix(0,1); 
+  int n_observations = gmm_matrix(1,0);
 
-  assert(n_rows == (3+ (n_gaussians*(1+1+n_dims_gmm))));
+  assert(n_rows == (2+ (n_gaussians*(1+1+n_dims_gmm))));
   
   vector<double> priors(n_gaussians);
   vector<VectorXd> means(n_gaussians);
   vector<MatrixXd> covars(n_gaussians);
   vector<double> E(n_gaussians);
-  int n_observations;
   
-  int cur_row = 3;
+  int cur_row = 2;
   for (int i_gau = 0; i_gau < n_gaussians; i_gau++)
   {
     priors[i_gau] = gmm_matrix(cur_row,0);
+
+    E[i_gau] = gmm_matrix(cur_row,1);
     
     means[i_gau] = gmm_matrix.row(cur_row+1);
    
     covars[i_gau] = gmm_matrix.block(cur_row+2,0,n_dims_gmm,n_dims_gmm);
-
-    E[i_gau] = gmm_matrix(1,0);
     
     cur_row += 1 + 1 + n_dims_gmm;
   }
     
-  n_observations = gmm_matrix(2,0);
-
   return new ModelParametersGMR(priors,means,covars,E,n_observations,n_dims_out);
 }
 
