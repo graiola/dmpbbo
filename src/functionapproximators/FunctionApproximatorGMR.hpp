@@ -105,7 +105,7 @@ protected:
    * \author Thibaut Munzer
    */
   void expectationMaximization(const Eigen::MatrixXd& data, std::vector<Eigen::VectorXd>& means, std::vector<double>& priors,
-    std::vector<Eigen::MatrixXd>& covars, Eigen::MatrixXd& assign, int n_max_iter=50);
+    std::vector<Eigen::MatrixXd>& covars, std::vector<double>& E, int n_observations, int n_max_iter=50);
   
   /** EM algorithm Incremental.
    * \param[in] data A (n_exemples x (n_in_dim + n_out_dim)) data matrix
@@ -116,7 +116,7 @@ protected:
    * \author Gennaro Raiola
    */
   void expectationMaximizationIncremental(const Eigen::MatrixXd& data, std::vector<Eigen::VectorXd>& means, std::vector<double>& priors,
-    std::vector<Eigen::MatrixXd>& covars, Eigen::MatrixXd& assign, int n_max_iter=50);
+    std::vector<Eigen::MatrixXd>& covars, std::vector<double>& E, int n_observations, int n_max_iter=50);
 
   /** The probability density function (PDF) of the multi-variate normal distribution
    * \param[in] mu The mean of the normal distribution
@@ -187,7 +187,10 @@ private:
   double probabilities_dot_prealloc_sum_;
 
   /** Used for incremental learning. */
-  Eigen::MatrixXd assign_;
+  //Eigen::MatrixXd assign_;
+  std::vector<double> E_;
+  int n_observations_;
+
 };
 
 }
