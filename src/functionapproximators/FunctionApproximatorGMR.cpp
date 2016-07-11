@@ -149,6 +149,7 @@ void FunctionApproximatorGMR::train(const MatrixXd& inputs, const MatrixXd& targ
   std::vector<Eigen::MatrixXd> covars_x(n_gaussians);
   std::vector<Eigen::MatrixXd> covars_y(n_gaussians);
   std::vector<Eigen::MatrixXd> covars_y_x(n_gaussians);
+  std::vector<double> E(n_gaussians);
   for (int i_gau = 0; i_gau < n_gaussians; i_gau++)
   {
     means_x[i_gau]    = means[i_gau].segment(0, n_dims_in);
@@ -157,9 +158,12 @@ void FunctionApproximatorGMR::train(const MatrixXd& inputs, const MatrixXd& targ
     covars_x[i_gau]   = covars[i_gau].block(0, 0, n_dims_in, n_dims_in);
     covars_y[i_gau]   = covars[i_gau].block(n_dims_in, n_dims_in, n_dims_out, n_dims_out);
     covars_y_x[i_gau] = covars[i_gau].block(n_dims_in, 0, n_dims_out, n_dims_in);
+    E[i_gau] = assign_.row(i_gau).sum();
   }
+  int n_observations = assign_.cols();
 
-  setModelParameters(new ModelParametersGMR(priors, means_x, means_y, covars_x, covars_y, covars_y_x));
+
+  setModelParameters(new ModelParametersGMR(priors, means_x, means_y, covars_x, covars_y, covars_y_x, E, n_observations));
 
   // After training, we know the sizes of the matrices that should be cached
   preallocateMatrices(n_gaussians,n_dims_in,n_dims_out);
