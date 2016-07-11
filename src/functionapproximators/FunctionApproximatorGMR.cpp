@@ -771,7 +771,7 @@ void FunctionApproximatorGMR::kMeansInit(const MatrixXd& data, std::vector<Vecto
 }
 
 void FunctionApproximatorGMR::expectationMaximization(const MatrixXd& data, std::vector<VectorXd>& centers, std::vector<double>& priors,
-    std::vector<MatrixXd>& covars, std::vector<double>& E, int n_observations, int n_max_iter)
+    std::vector<MatrixXd>& covars, std::vector<double>& E, int& n_observations, int n_max_iter)
 {
   MatrixXd assign(centers.size(), data.rows());
   assign.setZero();
@@ -869,7 +869,7 @@ void FunctionApproximatorGMR::expectationMaximization(const MatrixXd& data, std:
 }
 
 void FunctionApproximatorGMR::expectationMaximizationIncremental(const MatrixXd& data, std::vector<VectorXd>& centers, std::vector<double>& priors,
-    std::vector<MatrixXd>& covars, std::vector<double>& E, int n_observations, int n_max_iter)
+    std::vector<MatrixXd>& covars, std::vector<double>& E, int& n_observations, int n_max_iter)
 {
 
   std::vector<VectorXd> centers_prev = centers;
