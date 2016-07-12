@@ -114,7 +114,17 @@ void FunctionApproximatorGMR::train(const MatrixXd& inputs, const MatrixXd& targ
   const MetaParametersGMR* meta_parameters_GMR = 
     static_cast<const MetaParametersGMR*>(getMetaParameters());
 
-  int n_gaussians = meta_parameters_GMR->number_of_gaussians_;
+  const ModelParametersGMR* model_parameters_GMR =
+    static_cast<const ModelParametersGMR*>(getModelParameters());
+
+  int n_gaussians;
+  if(meta_parameters_GMR!=NULL)
+      n_gaussians = meta_parameters_GMR->number_of_gaussians_;
+  else if(model_parameters_GMR!=NULL)
+      n_gaussians = model_parameters_GMR->priors_.size();
+  else
+      cerr << "FunctionApproximatorGMR::train Something wrong happened, both ModelParameters and MetaParameters are not initialized." << endl;
+
   int n_dims_in = inputs.cols();
   int n_dims_out = targets.cols();
   int n_dims_gmm = n_dims_in + n_dims_out;
@@ -206,10 +216,10 @@ void FunctionApproximatorGMR::trainIncremental(const MatrixXd& inputs, const Mat
     return;
   }
 
-  const MetaParametersGMR* meta_parameters_GMR =
-    static_cast<const MetaParametersGMR*>(getMetaParameters());
+  const ModelParametersGMR* model_parameters_GMR = static_cast<const ModelParametersGMR*>(getModelParameters());
 
-  int n_gaussians = meta_parameters_GMR->number_of_gaussians_;
+
+  int n_gaussians = model_parameters_GMR->priors_.size();
   int n_dims_in = inputs.cols();
   int n_dims_out = targets.cols();
   int n_dims_gmm = n_dims_in + n_dims_out;
@@ -227,8 +237,6 @@ void FunctionApproximatorGMR::trainIncremental(const MatrixXd& inputs, const Mat
     covars[i] = MatrixXd(n_dims_gmm, n_dims_gmm);
     E[i] = 0.0;
   }
-
-  const ModelParametersGMR* model_parameters_GMR = static_cast<const ModelParametersGMR*>(getModelParameters());
 
   // Extract the model parameters
   for (int i = 0; i < n_gaussians; i++)
