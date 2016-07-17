@@ -134,6 +134,7 @@ void FunctionApproximatorGMR::train(const MatrixXd& inputs, const MatrixXd& targ
   std::vector<double> priors(n_gaussians);
   std::vector<double> E(n_gaussians);
   int n_observations = 0;
+  double responsability = 0.0;
   for (int i = 0; i < n_gaussians; i++)
   {
     means[i] = VectorXd(n_dims_gmm);
@@ -171,10 +172,9 @@ void FunctionApproximatorGMR::train(const MatrixXd& inputs, const MatrixXd& targ
     covars_y_x[i_gau] = covars[i_gau].block(n_dims_in, 0, n_dims_out, n_dims_in);
   }
 
+  responsability = computeResponsability(targets, means_y, covars_y);
 
-  setModelParameters(new ModelParametersGMR(priors, means_x, means_y, covars_x, covars_y, covars_y_x, E, n_observations));
-
-  responsability_ = computeResponsability(targets);
+  setModelParameters(new ModelParametersGMR(priors, means_x, means_y, covars_x, covars_y, covars_y_x, E, n_observations, responsability));
 
   // After training, we know the sizes of the matrices that should be cached
   preallocateMatrices(n_gaussians,n_dims_in,n_dims_out);
@@ -232,6 +232,7 @@ void FunctionApproximatorGMR::trainIncremental(const MatrixXd& inputs, const Mat
   std::vector<double> priors(n_gaussians);
   std::vector<double> E(n_gaussians);
   int n_observations = 0;
+  double responsability = 0.0;
   for (int i = 0; i < n_gaussians; i++)
   {
     means[i] = VectorXd(n_dims_gmm);
@@ -279,9 +280,9 @@ void FunctionApproximatorGMR::trainIncremental(const MatrixXd& inputs, const Mat
     covars_y_x[i_gau] = covars[i_gau].block(n_dims_in, 0, n_dims_out, n_dims_in);
   }
 
-  setModelParameters(new ModelParametersGMR(priors, means_x, means_y, covars_x, covars_y, covars_y_x, E, n_observations));
+  responsability = computeResponsability(targets,means_y,covars_y);
 
-  responsability_ = computeResponsability(targets);
+  setModelParameters(new ModelParametersGMR(priors, means_x, means_y, covars_x, covars_y, covars_y_x, E, n_observations, responsability));
 
   // After training, we know the sizes of the matrices that should be cached
   preallocateMatrices(n_gaussians,n_dims_in,n_dims_out);
@@ -992,37 +993,38 @@ void FunctionApproximatorGMR::expectationMaximizationIncremental(const MatrixXd&
 
 double FunctionApproximatorGMR::computeResponsability(const MatrixXd& targets)
 {
-    const ModelParametersGMR* model_parameters_GMR = static_cast<const ModelParametersGMR*>(getModelParameters());
 
-    int n_gaussians = model_parameters_GMR->priors_.size();
+    const ModelParametersGMR* model_parameters_GMR =
+      static_cast<const ModelParametersGMR*>(getModelParameters());
+
+    int n_gaussians, n_dims_out, n_dims_in;
+    if(model_parameters_GMR!=NULL)
+    {
+        n_gaussians = model_parameters_GMR->priors_.size();
+        n_dims_out = model_parameters_GMR->getExpectedOutputDim();
+        n_dims_in = model_parameters_GMR->getExpectedInputDim();
+    }
+    else
+    {
+        cerr << "FunctionApproximatorGMR::computeResponsability Something wrong happened, ModelParameters is not initialized." << endl;
+        return 0.0;
+    }
+
+    // Extract the different input/output components from the means/covars which contain both
+    /*std::vector<Eigen::VectorXd> means_y(n_gaussians);
+    std::vector<Eigen::MatrixXd> covars_y(n_gaussians);
+    for (int i_gau = 0; i_gau < n_gaussians; i_gau++)
+    {
+      means_y[i_gau]    = means[i_gau].segment(n_dims_in, n_dims_out);
+      covars_y[i_gau]   = covars[i_gau].block(n_dims_in, n_dims_in, n_dims_out, n_dims_out);
+    }*/
+    return computeResponsability(targets,model_parameters_GMR->means_y_,model_parameters_GMR->covars_y_);
+}
+
+double FunctionApproximatorGMR::computeResponsability(const MatrixXd& targets, const vector<VectorXd>& centers, const vector<MatrixXd>& covars)
+{
+    int n_gaussians = centers.size();
     int n_observations = targets.rows();
-
-    //int n_dims_in = model_parameters_GMR->getExpectedInputDim();
-    int n_dims_out = model_parameters_GMR->getExpectedOutputDim();
-    //int n_dims_gmm = n_dims_in + n_dims_out;
-
-    // Put the input/output data in one big matrix
-    //MatrixXd data = MatrixXd(inputs.rows(), n_dims_gmm);
-    //data << inputs, targets;
-
-    // Initialize the means and covars
-    std::vector<VectorXd> centers(n_gaussians);
-    std::vector<MatrixXd> covars(n_gaussians);
-    for (int i = 0; i < n_gaussians; i++)
-    {
-      centers[i] = VectorXd(n_dims_out);
-      covars[i] = MatrixXd(n_dims_out, n_dims_out);
-    }
-    // Extract the model parameters
-    for (int i = 0; i < n_gaussians; i++)
-    {
-      //centers[i].segment(0, n_dims_in)    = model_parameters_GMR->means_x_[i];
-      centers[i].segment(0, n_dims_out)    = model_parameters_GMR->means_y_[i];
-
-      //covars[i].block(0, 0, n_dims_in, n_dims_in)   = model_parameters_GMR->covars_x_[i];
-      covars[i].block(0, 0, n_dims_out, n_dims_out)   = model_parameters_GMR->covars_y_[i];
-      //covars[i].block(n_dims_in, 0, n_dims_out, n_dims_in) = model_parameters_GMR->covars_y_x_[i];
-    }
 
     MatrixXd p(n_observations,n_gaussians);
     p.setZero();
@@ -1039,6 +1041,18 @@ double FunctionApproximatorGMR::computeResponsability(const MatrixXd& targets)
     //responsability_ = responsability;
 
     return responsability;
+}
+
+double FunctionApproximatorGMR::getCachedResponsability()
+{
+    const ModelParametersGMR* model_parameters_GMR = static_cast<const ModelParametersGMR*>(getModelParameters());
+    if(model_parameters_GMR!=NULL)
+        return model_parameters_GMR->responsability_;
+    else
+    {
+        cerr << "FunctionApproximatorGMR::getCachedResponsability no ModelParameter available." << endl;
+        return 0.0;
+    }
 }
 
 template<class Archive>
