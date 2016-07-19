@@ -807,8 +807,14 @@ void FunctionApproximatorGMR::expectationMaximization(const MatrixXd& data, std:
 
     oldLoglik = loglik;
     loglik = 0;
+    double sum_tmp = 0.0;
     for (int iData = 0; iData < data.rows(); iData++)
-      loglik += log(assign.col(iData).sum());
+    {
+        sum_tmp = assign.col(iData).sum();
+        if(sum_tmp < std::numeric_limits<double>::min())
+            sum_tmp = std::numeric_limits<double>::min();
+      loglik += log(sum_tmp);
+    }
     loglik /= data.rows();
 
     for (int iData = 0; iData < data.rows(); iData++)
@@ -914,8 +920,14 @@ void FunctionApproximatorGMR::expectationMaximizationIncremental(const MatrixXd&
 
     oldLoglik = loglik;
     loglik = 0;
+    double sum_tmp = 0.0;
     for (int iData = 0; iData < data.rows(); iData++)
-      loglik += log(assign.col(iData).sum());
+    {
+        sum_tmp = assign.col(iData).sum();
+        if(sum_tmp < std::numeric_limits<double>::min())
+            sum_tmp = std::numeric_limits<double>::min();
+      loglik += log(sum_tmp);
+    }
     loglik /= data.rows();
 
     for (int iData = 0; iData < data.rows(); iData++)
@@ -1036,6 +1048,13 @@ double FunctionApproximatorGMR::computeResponsability(const MatrixXd& targets, c
 
     VectorXd sum_tmp = p.rowwise().sum();
     sum_tmp /= n_observations;
+
+    for (int i = 0; i < sum_tmp.size(); i++)
+    {
+        if(sum_tmp(i) < std::numeric_limits<double>::min())
+            sum_tmp(i) = std::numeric_limits<double>::min();
+        sum_tmp(i) = log(sum_tmp(i));
+    }
 
     double responsability = sum_tmp.sum()/n_gaussians;
     //responsability_ = responsability;
