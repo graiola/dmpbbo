@@ -152,6 +152,12 @@ public:
 
   void trainIncremental(const Eigen::MatrixXd& inputs, const Eigen::MatrixXd& targets);
 
+  double computeResponsability(const Eigen::MatrixXd& targets, const std::vector<Eigen::VectorXd>& centers, const std::vector<Eigen::MatrixXd>& covars);
+
+  double computeResponsability(const Eigen::MatrixXd& targets);
+
+  double getCachedResponsability();
+
 private:
   /**
    * Default constructor.
@@ -190,6 +196,7 @@ private:
   //Eigen::MatrixXd assign_;
   std::vector<double> E_;
   int n_observations_;
+  //double responsability_;
 
 };
 
