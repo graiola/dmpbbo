@@ -126,6 +126,8 @@ protected:
    */
   static double normalPDF(const Eigen::VectorXd& mu, const Eigen::MatrixXd& covar, const Eigen::VectorXd& input);
 
+  static double normalPDFDamped(const Eigen::VectorXd& mu, const Eigen::MatrixXd& covar, const Eigen::VectorXd& input);
+
 public:
    /** Query the function approximator to make a prediction and to compute the derivate of that prediction
    *  \param[in]  inputs   Input values of the query

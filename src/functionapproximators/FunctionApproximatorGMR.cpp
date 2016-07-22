@@ -108,7 +108,7 @@ void FunctionApproximatorGMR::train(const MatrixXd& inputs, const MatrixXd& targ
   }
   
   assert(inputs.rows() == targets.rows()); // Must have same number of examples
-  assert(inputs.cols()==getExpectedInputDim());
+  assert(inputs.cols() == getExpectedInputDim());
 
   const MetaParametersGMR* meta_parameters_GMR = 
     static_cast<const MetaParametersGMR*>(getMetaParameters());
@@ -319,6 +319,7 @@ void FunctionApproximatorGMR::trainIncremental(const MatrixXd& inputs, const Mat
 double FunctionApproximatorGMR::normalPDF(const VectorXd& mu, const MatrixXd& covar, const VectorXd& input)
 {
   MatrixXd covar_inverse = covar.inverse();
+
   double output = exp(-0.5*(input-mu).transpose()*covar_inverse*(input-mu));
   // For invertible matrices (which covar apparently was), det(A^-1) = 1/det(A)
   // Hence the 1.0/covar_inverse.determinant() below
@@ -327,6 +328,25 @@ double FunctionApproximatorGMR::normalPDF(const VectorXd& mu, const MatrixXd& co
   return output;
 }
 
+double FunctionApproximatorGMR::normalPDFDamped(const VectorXd& mu, const MatrixXd& covar, const VectorXd& input)
+{
+  if(covar.determinant() > 0) // It is invertible
+  {
+    MatrixXd covar_inverse = covar.inverse();
+
+      double output = exp(-0.5*(input-mu).transpose()*covar_inverse*(input-mu));
+      // For invertible matrices (which covar apparently was), det(A^-1) = 1/det(A)
+      // Hence the 1.0/covar_inverse.determinant() below
+      //  ( (2\pi)^N*|\Sigma| )^(-1/2)
+      output *= pow(pow(2*M_PI,mu.size())/(covar_inverse.determinant()),-0.5);
+      return output;
+  }
+  else
+  {
+      //cerr << "WARNING: FunctionApproximatorGMR::normalPDFDamped output close to singularity..." << endl;
+      return std::numeric_limits<double>::min();
+  }
+}
 
 void FunctionApproximatorGMR::predict(const MatrixXd& inputs, MatrixXd& outputs)
 {
@@ -811,9 +831,7 @@ void FunctionApproximatorGMR::expectationMaximization(const MatrixXd& data, std:
     for (int iData = 0; iData < data.rows(); iData++)
     {
         sum_tmp = assign.col(iData).sum();
-        if(sum_tmp < std::numeric_limits<double>::min())
-            sum_tmp = std::numeric_limits<double>::min();
-      loglik += log(sum_tmp);
+        loglik += log(sum_tmp);
     }
     loglik /= data.rows();
 
@@ -891,11 +909,10 @@ void FunctionApproximatorGMR::expectationMaximizationIncremental(const MatrixXd&
 {
 
   std::vector<VectorXd> centers_prev = centers;
-  //std::vector<double> priors_prev = priors;
+  std::vector<double> priors_prev = priors;
   std::vector<MatrixXd> covars_prev = covars;
-  //MatrixXd assign_prev = assign;
   int n_observations_prev = n_observations;
-  std::vector<double> E_prev = E;
+  std::vector<double> E_prev;
   n_observations = data.rows();
 
   double oldLoglik = -1e10f;
@@ -904,8 +921,10 @@ void FunctionApproximatorGMR::expectationMaximizationIncremental(const MatrixXd&
   MatrixXd assign(centers.size(), data.rows());
   assign.setZero();
 
-  //std::vector<double> E(centers.size(),0.0);
-  //std::vector<double> E_prev(centers.size(),0.0);
+  // Compute the old E
+  E_prev.resize(centers.size());
+  for (size_t i_gau = 0; i_gau<centers.size(); i_gau++)
+      E_prev[i_gau] = priors_prev[i_gau] * n_observations_prev;
 
   for (int iIter = 0; iIter < n_max_iter; iIter++)
   {
@@ -916,7 +935,7 @@ void FunctionApproximatorGMR::expectationMaximizationIncremental(const MatrixXd&
     // E step
     for (int iData = 0; iData < data.rows(); iData++)
       for (size_t i_gau = 0; i_gau < centers.size(); i_gau++)
-        assign(i_gau, iData) = priors[i_gau] * FunctionApproximatorGMR::normalPDF(centers[i_gau], covars[i_gau],data.row(iData).transpose());
+        assign(i_gau, iData) = priors[i_gau] * FunctionApproximatorGMR::normalPDFDamped(centers[i_gau], covars[i_gau],data.row(iData).transpose());
 
     oldLoglik = loglik;
     loglik = 0;
@@ -924,14 +943,18 @@ void FunctionApproximatorGMR::expectationMaximizationIncremental(const MatrixXd&
     for (int iData = 0; iData < data.rows(); iData++)
     {
         sum_tmp = assign.col(iData).sum();
-        if(sum_tmp < std::numeric_limits<double>::min())
-            sum_tmp = std::numeric_limits<double>::min();
-      loglik += log(sum_tmp);
+        //if(sum_tmp < std::numeric_limits<double>::min())
+            //sum_tmp = std::numeric_limits<double>::min();
+        loglik += log(sum_tmp);
     }
     loglik /= data.rows();
 
     for (int iData = 0; iData < data.rows(); iData++)
       assign.col(iData) /= assign.col(iData).sum();
+
+    std::cout << "iter: " << iIter << std::endl;
+    std::cout << "sum_tmp: " << sum_tmp << std::endl;
+    std::cout << "loglik: " << loglik << std::endl;
 
     if (fabs(loglik / oldLoglik - 1) < 1e-8f)
       break;
@@ -974,6 +997,9 @@ void FunctionApproximatorGMR::expectationMaximizationIncremental(const MatrixXd&
     for (size_t i_gau = 0; i_gau < centers.size(); i_gau++)
       covars[i_gau] += MatrixXd::Identity(covars[i_gau].rows(), covars[i_gau].cols()) * 1e-5f;
   }
+
+  // Increase the total number of obs counting the old plus the new
+  n_observations += n_observations_prev;
 
   /*
   Here's a hacky Matlab script for plotting the EM procedure above (if you cann saveGMM)
@@ -1035,7 +1061,7 @@ double FunctionApproximatorGMR::computeResponsability(const MatrixXd& targets)
 
 double FunctionApproximatorGMR::computeResponsability(const MatrixXd& targets, const vector<VectorXd>& centers, const vector<MatrixXd>& covars)
 {
-    int n_gaussians = centers.size();
+    size_t n_gaussians = centers.size();
     int n_observations = targets.rows();
 
     MatrixXd p(n_observations,n_gaussians);
