@@ -212,7 +212,7 @@ void FunctionApproximatorGMR::trainIncremental(const MatrixXd& inputs, const Mat
 {
   if (!isTrained())
   {
-    cout << " Re-training... " << endl;
+    cout << " Training for the first time... " << endl;
     train(inputs,targets);
     return;
   }
