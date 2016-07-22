@@ -212,8 +212,7 @@ void FunctionApproximatorGMR::trainIncremental(const MatrixXd& inputs, const Mat
 {
   if (!isTrained())
   {
-    cerr << "WARNING: You may not call FunctionApproximatorGMR::trainIncremental if it's not trained already." << endl;
-    cerr << " Training... " << endl;
+    cout << " Re-training... " << endl;
     train(inputs,targets);
     return;
   }
@@ -280,7 +279,7 @@ void FunctionApproximatorGMR::trainIncremental(const MatrixXd& inputs, const Mat
     covars_y_x[i_gau] = covars[i_gau].block(n_dims_in, 0, n_dims_out, n_dims_in);
   }
 
-  responsability = computeResponsability(targets,means_y,covars_y);
+  responsability = (computeResponsability(targets,means_y,covars_y) + getCachedResponsability())/2; // Do the mean... Does it make sense?
 
   setModelParameters(new ModelParametersGMR(priors, means_x, means_y, covars_x, covars_y, covars_y_x, E, n_observations, responsability));
 
@@ -943,8 +942,6 @@ void FunctionApproximatorGMR::expectationMaximizationIncremental(const MatrixXd&
     for (int iData = 0; iData < data.rows(); iData++)
     {
         sum_tmp = assign.col(iData).sum();
-        //if(sum_tmp < std::numeric_limits<double>::min())
-            //sum_tmp = std::numeric_limits<double>::min();
         loglik += log(sum_tmp);
     }
     loglik /= data.rows();
