@@ -949,9 +949,9 @@ void FunctionApproximatorGMR::expectationMaximizationIncremental(const MatrixXd&
     for (int iData = 0; iData < data.rows(); iData++)
       assign.col(iData) /= assign.col(iData).sum();
 
-    std::cout << "iter: " << iIter << std::endl;
-    std::cout << "sum_tmp: " << sum_tmp << std::endl;
-    std::cout << "loglik: " << loglik << std::endl;
+    //std::cout << "iter: " << iIter << std::endl;
+    //std::cout << "sum_tmp: " << sum_tmp << std::endl;
+    //std::cout << "loglik: " << loglik << std::endl;
 
     if (fabs(loglik / oldLoglik - 1) < 1e-8f)
       break;
