@@ -132,7 +132,6 @@ void FunctionApproximatorGMR::train(const MatrixXd& inputs, const MatrixXd& targ
   std::vector<VectorXd> means(n_gaussians);
   std::vector<MatrixXd> covars(n_gaussians);
   std::vector<double> priors(n_gaussians);
-  std::vector<double> E(n_gaussians);
   int n_observations = 0;
   double responsability = 0.0;
   for (int i = 0; i < n_gaussians; i++)
@@ -140,7 +139,6 @@ void FunctionApproximatorGMR::train(const MatrixXd& inputs, const MatrixXd& targ
     means[i] = VectorXd(n_dims_gmm);
     priors[i] = 0.0;
     covars[i] = MatrixXd(n_dims_gmm, n_dims_gmm);
-    E[i] = 0.0;
   }
   
   // Put the input/output data in one big matrix
@@ -154,7 +152,7 @@ void FunctionApproximatorGMR::train(const MatrixXd& inputs, const MatrixXd& targ
     kMeansInit(data, means, priors, covars);
   
   // Expectation-Maximization
-  expectationMaximization(data, means, priors, covars, E, n_observations);
+  expectationMaximization(data, means, priors, covars, n_observations);
 
   // Extract the different input/output components from the means/covars which contain both
   std::vector<Eigen::VectorXd> means_x(n_gaussians);
@@ -174,7 +172,7 @@ void FunctionApproximatorGMR::train(const MatrixXd& inputs, const MatrixXd& targ
 
   responsability = computeResponsability(targets, means_y, covars_y);
 
-  setModelParameters(new ModelParametersGMR(priors, means_x, means_y, covars_x, covars_y, covars_y_x, E, n_observations, responsability));
+  setModelParameters(new ModelParametersGMR(priors, means_x, means_y, covars_x, covars_y, covars_y_x, n_observations, responsability));
 
   // After training, we know the sizes of the matrices that should be cached
   preallocateMatrices(n_gaussians,n_dims_in,n_dims_out);
@@ -229,7 +227,6 @@ void FunctionApproximatorGMR::trainIncremental(const MatrixXd& inputs, const Mat
   std::vector<VectorXd> means(n_gaussians);
   std::vector<MatrixXd> covars(n_gaussians);
   std::vector<double> priors(n_gaussians);
-  std::vector<double> E(n_gaussians);
   int n_observations = 0;
   double responsability = 0.0;
   for (int i = 0; i < n_gaussians; i++)
@@ -237,7 +234,6 @@ void FunctionApproximatorGMR::trainIncremental(const MatrixXd& inputs, const Mat
     means[i] = VectorXd(n_dims_gmm);
     priors[i] = 0.0;
     covars[i] = MatrixXd(n_dims_gmm, n_dims_gmm);
-    E[i] = 0.0;
   }
 
   // Extract the model parameters
@@ -251,7 +247,6 @@ void FunctionApproximatorGMR::trainIncremental(const MatrixXd& inputs, const Mat
     covars[i].block(n_dims_in, 0, n_dims_out, n_dims_in) = model_parameters_GMR->covars_y_x_[i];
 
     priors[i] = model_parameters_GMR->priors_[i];
-    E[i] = model_parameters_GMR->E_[i];
   }
   n_observations = model_parameters_GMR->n_observations_;
 
@@ -261,7 +256,7 @@ void FunctionApproximatorGMR::trainIncremental(const MatrixXd& inputs, const Mat
 
 
   // Expectation-Maximization Incremental
-  expectationMaximizationIncremental(data, means, priors, covars, E, n_observations);
+  expectationMaximizationIncremental(data, means, priors, covars, n_observations);
 
   // Extract the different input/output components from the means/covars which contain both
   std::vector<Eigen::VectorXd> means_x(n_gaussians);
@@ -281,7 +276,7 @@ void FunctionApproximatorGMR::trainIncremental(const MatrixXd& inputs, const Mat
 
   responsability = (computeResponsability(targets,means_y,covars_y) + getCachedResponsability())/2; // Do the mean... Does it make sense?
 
-  setModelParameters(new ModelParametersGMR(priors, means_x, means_y, covars_x, covars_y, covars_y_x, E, n_observations, responsability));
+  setModelParameters(new ModelParametersGMR(priors, means_x, means_y, covars_x, covars_y, covars_y_x, n_observations, responsability));
 
   // After training, we know the sizes of the matrices that should be cached
   preallocateMatrices(n_gaussians,n_dims_in,n_dims_out);
@@ -803,10 +798,12 @@ void FunctionApproximatorGMR::kMeansInit(const MatrixXd& data, std::vector<Vecto
 }
 
 void FunctionApproximatorGMR::expectationMaximization(const MatrixXd& data, std::vector<VectorXd>& centers, std::vector<double>& priors,
-    std::vector<MatrixXd>& covars, std::vector<double>& E, int& n_observations, int n_max_iter)
+    std::vector<MatrixXd>& covars, int& n_observations, int n_max_iter)
 {
   MatrixXd assign(centers.size(), data.rows());
   assign.setZero();
+
+  std::vector<double> E(centers.size());
 
   double oldLoglik = -1e10f;
   double loglik = 0;
@@ -904,7 +901,7 @@ void FunctionApproximatorGMR::expectationMaximization(const MatrixXd& data, std:
 }
 
 void FunctionApproximatorGMR::expectationMaximizationIncremental(const MatrixXd& data, std::vector<VectorXd>& centers, std::vector<double>& priors,
-    std::vector<MatrixXd>& covars, std::vector<double>& E, int& n_observations, int n_max_iter)
+    std::vector<MatrixXd>& covars, int& n_observations, int n_max_iter)
 {
 
   std::vector<VectorXd> centers_prev = centers;
@@ -912,6 +909,7 @@ void FunctionApproximatorGMR::expectationMaximizationIncremental(const MatrixXd&
   std::vector<MatrixXd> covars_prev = covars;
   int n_observations_prev = n_observations;
   std::vector<double> E_prev;
+  std::vector<double> E(centers.size());
   n_observations = data.rows();
 
   double oldLoglik = -1e10f;

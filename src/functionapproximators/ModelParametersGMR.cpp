@@ -92,7 +92,6 @@ ModelParametersGMR::ModelParametersGMR(std::vector<double> priors,
   
   all_values_vector_size_ = 0;  
 
-  E_ = std::vector<double>(n_gaussians,0.0);
   n_observations_ = 0;
   responsability_ = 0.0;
 }
@@ -100,17 +99,13 @@ ModelParametersGMR::ModelParametersGMR(std::vector<double> priors,
 ModelParametersGMR::ModelParametersGMR(std::vector<double> priors,
   std::vector<Eigen::VectorXd> means,
   std::vector<Eigen::MatrixXd> covars,
-  std::vector<double> E,
   int n_observations,
   double responsability,
   int n_dims_out)
 :ModelParametersGMR(priors,means,covars,n_dims_out)
 {
-    size_t n_gaussians = priors.size();
-    assert(E.size() == n_gaussians);
     assert(n_observations >= 0);
 
-    E_ = E;
     n_observations_ = n_observations;
     responsability_ = responsability;
 }
@@ -160,7 +155,6 @@ ModelParametersGMR::ModelParametersGMR(std::vector<double> priors,
 
   all_values_vector_size_ = 0;
 
-  E_ = std::vector<double>(n_gaussians,0.0);
   n_observations_ = 0;
   
   // NEW REPRESENTATION
@@ -177,14 +171,11 @@ ModelParametersGMR::ModelParametersGMR(std::vector<double> priors,
 ModelParametersGMR::ModelParametersGMR(std::vector<double> priors,
   std::vector<Eigen::VectorXd> means_x, std::vector<Eigen::VectorXd> means_y,
   std::vector<Eigen::MatrixXd> covars_x, std::vector<Eigen::MatrixXd> covars_y,
-  std::vector<Eigen::MatrixXd> covars_y_x, std::vector<double> E, int n_observations, double responsability)
+  std::vector<Eigen::MatrixXd> covars_y_x, int n_observations, double responsability)
 :ModelParametersGMR(priors, means_x, means_y, covars_x,covars_y, covars_y_x)
 {
-    size_t n_gaussians = priors.size();
-    assert(E.size() == n_gaussians);
     assert(n_observations >= 0);
 
-    E_ = E;
     n_observations_ = n_observations;
     responsability_ = responsability;
 }
@@ -214,7 +205,6 @@ ModelParameters* ModelParametersGMR::clone(void) const
   std::vector<MatrixXd> covars_x;
   std::vector<MatrixXd> covars_y;
   std::vector<MatrixXd> covars_y_x;
-  std::vector<double> E;
   int n_observations = n_observations_;
   double responsability = responsability_;
 
@@ -226,10 +216,9 @@ ModelParameters* ModelParametersGMR::clone(void) const
     covars_x.push_back(MatrixXd(covars_x_[i]));
     covars_y.push_back(MatrixXd(covars_y_[i]));
     covars_y_x.push_back(MatrixXd(covars_y_x_[i]));
-    E.push_back(E_[i]);
   }
 
-  return new ModelParametersGMR(priors, means_x, means_y, covars_x, covars_y, covars_y_x, E, n_observations, responsability);
+  return new ModelParametersGMR(priors, means_x, means_y, covars_x, covars_y, covars_y_x, n_observations, responsability);
 }
 
 template<class Archive>
@@ -329,7 +318,7 @@ void ModelParametersGMR::toMatrix(Eigen::MatrixXd& gmm_as_matrix) const
   int n_rows = 2; // First row contains n_gaussians, n_output_dims, second row contains n_observations and responsability
   for (int i_gau = 0; i_gau < n_gaussians; i_gau++)
   {
-    n_rows += 1; // Add one row for the prior and E
+    n_rows += 1; // Add one row for the prior
     n_rows += 1; // Add one row for the mean
     n_rows += n_dims_gmm; // For the covariance matrix 
   }
@@ -355,7 +344,6 @@ void ModelParametersGMR::toMatrix(Eigen::MatrixXd& gmm_as_matrix) const
     covar.block(0, n_dims_in, n_dims_in, n_dims_out) = covars_y_x_[i_gau].transpose();
     
     gmm_as_matrix(cur_row,0) = priors_[i_gau];
-    gmm_as_matrix(cur_row,1) = E_[i_gau];
     gmm_as_matrix.row(cur_row+1) = mean;
     gmm_as_matrix.block(cur_row+2,0,n_dims_gmm,n_dims_gmm) = covar;
     
@@ -380,14 +368,11 @@ ModelParametersGMR* ModelParametersGMR::fromMatrix(const MatrixXd& gmm_matrix)
   vector<double> priors(n_gaussians);
   vector<VectorXd> means(n_gaussians);
   vector<MatrixXd> covars(n_gaussians);
-  vector<double> E(n_gaussians);
   
   int cur_row = 2;
   for (int i_gau = 0; i_gau < n_gaussians; i_gau++)
   {
     priors[i_gau] = gmm_matrix(cur_row,0);
-
-    E[i_gau] = gmm_matrix(cur_row,1);
     
     means[i_gau] = gmm_matrix.row(cur_row+1);
    
@@ -396,7 +381,7 @@ ModelParametersGMR* ModelParametersGMR::fromMatrix(const MatrixXd& gmm_matrix)
     cur_row += 1 + 1 + n_dims_gmm;
   }
     
-  return new ModelParametersGMR(priors,means,covars,E,n_observations,responsability,n_dims_out);
+  return new ModelParametersGMR(priors,means,covars,n_observations,responsability,n_dims_out);
 }
 
 bool ModelParametersGMR::saveGMMToMatrix(std::string filename, bool overwrite) const
