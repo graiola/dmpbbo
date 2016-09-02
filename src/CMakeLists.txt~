@@ -1,0 +1,11 @@
+################################################################################
+file(GLOB SOURCES BasisFunction.cpp Parameterizable.cpp MetaParameters.cpp ModelParameters.cpp FunctionApproximator.cpp *GMR.cpp) 
+
+################################################################################
+add_library(gmr ${SHARED_OR_STATIC} ${SOURCES})
+install(TARGETS functionapproximators DESTINATION ${LIB_INSTALL_DIR})
+
+file(GLOB HEADERS *.hpp)
+
+install(FILES ${HEADERS} DESTINATION ${INCLUDE_INSTALL_DIR}/gmr)
+
