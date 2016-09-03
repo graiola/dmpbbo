@@ -1017,14 +1017,7 @@ double FunctionApproximatorGMR::computeResponsability(const MatrixXd& targets)
     const ModelParametersGMR* model_parameters_GMR =
       static_cast<const ModelParametersGMR*>(getModelParameters());
 
-    int n_gaussians, n_dims_out, n_dims_in;
-    if(model_parameters_GMR!=NULL)
-    {
-        n_gaussians = model_parameters_GMR->priors_.size();
-        n_dims_out = model_parameters_GMR->getExpectedOutputDim();
-        n_dims_in = model_parameters_GMR->getExpectedInputDim();
-    }
-    else
+    if(model_parameters_GMR==NULL)
     {
         cerr << "FunctionApproximatorGMR::computeResponsability Something wrong happened, ModelParameters is not initialized." << endl;
         return 0.0;
