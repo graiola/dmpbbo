@@ -1047,17 +1047,18 @@ double FunctionApproximatorGMR::computeResponsability(const MatrixXd& targets, c
       for (size_t i_gau = 0; i_gau < n_gaussians; i_gau++)
         p(i_ob,i_gau) = FunctionApproximatorGMR::normalPDF(centers[i_gau], covars[i_gau],targets.row(i_ob).transpose());
 
-    VectorXd sum_tmp = p.rowwise().sum();
-    sum_tmp /= n_observations;
+    VectorXd sum_tmp = p.colwise().sum();
+
 
     for (int i = 0; i < sum_tmp.size(); i++)
     {
+        sum_tmp(i) /= static_cast<double>(n_observations);
         if(sum_tmp(i) < std::numeric_limits<double>::min())
             sum_tmp(i) = std::numeric_limits<double>::min();
         sum_tmp(i) = log(sum_tmp(i));
     }
 
-    double responsability = sum_tmp.sum()/n_gaussians;
+    double responsability = sum_tmp.sum()/static_cast<double>(n_gaussians);
     //responsability_ = responsability;
 
     return responsability;
