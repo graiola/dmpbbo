@@ -19,7 +19,10 @@ find_package( Boost COMPONENTS filesystem system REQUIRED)
 
 ###############################################################################
 # Find catkin
-find_package(catkin)
+find_package(catkin REQUIRED COMPONENTS
+  toolbox
+)
+
 
 catkin_package(
   INCLUDE_DIRS include
@@ -44,6 +47,14 @@ file(GLOB HEADERS include/${PROJECT_NAME}/*.hpp)
 include_directories(
   include ${INCLUDE_PATHS}
 )
+
+## Add gtest based cpp test target and link libraries
+catkin_add_gtest(test_vf_gmr
+  test/test_vf_gmr.cpp
+)
+if(TARGET test_vf_gmr)
+  target_link_libraries(test_vf_gmr ${PROJECT_NAME} ${catkin_LIBRARIES})
+endif()
 
 ## Declare a cpp library
 add_library(${PROJECT_NAME} ${HEADERS} ${SOURCES})
