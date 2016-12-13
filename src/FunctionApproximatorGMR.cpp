@@ -305,6 +305,15 @@ double FunctionApproximatorGMR::normalPDF(const VectorXd& mu, const MatrixXd& co
 {
   MatrixXd covar_inverse = covar.inverse();
 
+  //HouseholderQR<MatrixXd> qr(A);
+  //x = qr.solve(b); // computes A^-1 * b avoiding the inverse
+
+  // Took from Calinon c++ code
+  // calculate Exponential:
+  //_probs = sqrt(fabs(det(LAMBDA))/pow(2*PI,LAMBDA.n_cols))*exp(-0.5*arma::abs(_probs));
+  // Implementation with determinant based on SIGMA instead of Lambda: (LAMBDA = SIGMA.inverse)
+  //	Probs = exp(-0.5*arma::abs(Probs)) / sqrt(pow((2*PI),SIGMA.n_cols) * (fabs(det(SIGMA)) + THRESHOLD_MIN));
+
   double output = exp(-0.5*(input-mu).transpose()*covar_inverse*(input-mu));
   // For invertible matrices (which covar apparently was), det(A^-1) = 1/det(A)
   // Hence the 1.0/covar_inverse.determinant() below
@@ -320,6 +329,11 @@ double FunctionApproximatorGMR::normalPDFDamped(const VectorXd& mu, const Matrix
     MatrixXd covar_inverse = covar.inverse();
 
       double output = exp(-0.5*(input-mu).transpose()*covar_inverse*(input-mu));
+
+      // Check that:
+      // if output == 0.0
+      // return 0.0;
+
       // For invertible matrices (which covar apparently was), det(A^-1) = 1/det(A)
       // Hence the 1.0/covar_inverse.determinant() below
       //  ( (2\pi)^N*|\Sigma| )^(-1/2)
